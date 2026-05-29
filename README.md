@@ -1,5 +1,7 @@
 # SHU NetAuth
 
+Languages: [English](README.md) | [简体中文](README.zh-hans.md) | [繁體中文](README.zh-hant.md)
+
 SHU NetAuth is a Windows startup authentication tool for the Shanghai University campus network ePortal environment.
 
 Version `v1.0.1` focuses on a clean setup experience: users only need to enter their campus network username, password, and one full ePortal login URL copied from the browser. Detailed diagnostics are written to `logs\shu-netauth.log` instead of being shown in the setup window.
@@ -158,3 +160,4 @@ config\portal.password.bin
 The password file is protected with Windows DPAPI `LocalMachine` scope so the startup task can run as `SYSTEM` before user login. Use SHU NetAuth only on trusted personal devices.
 
 See [SECURITY.md](SECURITY.md) and [TECHNICAL_NOTES.md](TECHNICAL_NOTES.md) for details.
+
