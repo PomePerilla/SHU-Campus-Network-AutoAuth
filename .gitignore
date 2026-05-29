@@ -1,12 +1,7 @@
 # Local credentials and runtime state
-/config/
+/config/portal.json
+/config/portal.password.bin
 /logs/
-
-# Legacy local prototype files outside the versioned release package
-/configure.ps1
-/install-startup-task.ps1
-/uninstall-startup-task.ps1
-/scripts/
 
 # Versioned release runtime state
 v*/config/portal.json

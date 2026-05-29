@@ -15,6 +15,7 @@ $PasswordPath = Join-Path $ConfigDir "portal.password.bin"
 
 $DefaultPublicKeyExponent = "10001"
 $DefaultPublicKeyModulus = "94dd2a8675fb779e6b9f7103698634cd400f27a154afa67af6166a43fc26417222a79506d34cacc7641946abda1785b7acf9910ad6a0978c91ec84d40b71d2891379af19ffb333e7517e390bd26ac312fe940c340466b4a5d4af1d65c3b5944078f96a1a51a5a53e4bc302818b7c9f63c4a1b07bd7d874cef1c3d4b2f5eb7871"
+$DefaultTrustedPortalHost = "10.10.9.9"
 
 function Read-WithDefault {
     param(
@@ -124,6 +125,26 @@ function Get-PortalBaseUrl {
     return "$($uri.Scheme)://$($uri.Authority)/eportal/"
 }
 
+function Confirm-NonDefaultGateway {
+    param(
+        [string]$GatewayUrl,
+        [string]$TrustedPortalHost
+    )
+
+    $hostName = ([uri]$GatewayUrl).Host
+    if ($hostName -eq $TrustedPortalHost) {
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Warning: the portal gateway host is not the default trusted SHU host ($TrustedPortalHost)." -ForegroundColor Yellow
+    Write-Host "Only continue if you are certain this is an official Shanghai University ePortal gateway." -ForegroundColor Yellow
+    $answer = Read-Host "Type YES to trust '$hostName' for this local configuration"
+    if ($answer -ne "YES") {
+        throw "Configuration cancelled because the portal gateway host was not confirmed."
+    }
+}
+
 function Get-FallbackQueryString {
     param([string]$PortalUrl)
 
@@ -143,7 +164,7 @@ if (-not (Test-Path $ConfigDir)) {
     New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
 }
 
-Write-Host "SHU Campus Network AutoAuth CLI v0.1.2"
+Write-Host "SHU NetAuth v1.0.0"
 Write-Host ""
 Write-Host "This version does not require a current ePortal login URL during configuration."
 Write-Host "The startup task will fetch the current ePortal query string when login is actually needed."
@@ -162,14 +183,18 @@ if ([string]::IsNullOrWhiteSpace($FallbackPortalUrl)) {
 }
 
 $normalizedGatewayUrl = Normalize-PortalGatewayUrl -Url $PortalGatewayUrl
+Confirm-NonDefaultGateway -GatewayUrl $normalizedGatewayUrl -TrustedPortalHost $DefaultTrustedPortalHost
 $portalBaseUrl = Get-PortalBaseUrl -GatewayUrl $normalizedGatewayUrl
 $fallbackQueryString = Get-FallbackQueryString -PortalUrl $FallbackPortalUrl
+$trustedPortalHost = ([uri]$normalizedGatewayUrl).Host
 
 $config = [ordered]@{
-    ProductName = "SHU Campus Network AutoAuth"
-    Version = "0.1.2"
+    ProductName = "SHU NetAuth"
+    Version = "1.0.0"
     PortalType = "SHU-EPortal"
     PortalGatewayUrl = $normalizedGatewayUrl
+    TrustedPortalHost = $trustedPortalHost
+    EnforceTrustedPortal = $true
     LoginUrl = $portalBaseUrl + "InterFace.do?method=login"
     PageInfoUrl = $portalBaseUrl + "InterFace.do?method=pageInfo"
     Method = "POST"
@@ -178,8 +203,9 @@ $config = [ordered]@{
     Service = $Service.Trim()
     FallbackQueryString = $fallbackQueryString
     PasswordEncrypt = "true"
-    PublicKeyExponent = $DefaultPublicKeyExponent
-    PublicKeyModulus = $DefaultPublicKeyModulus
+    RequirePasswordEncrypt = $true
+    TrustedPublicKeyExponent = $DefaultPublicKeyExponent
+    TrustedPublicKeyModulus = $DefaultPublicKeyModulus
     OnlineTestUrl = "http://www.msftconnecttest.com/connecttest.txt"
     OnlineTestExpectedStatus = 200
     OnlineTestExpectedContent = "Microsoft Connect Test"

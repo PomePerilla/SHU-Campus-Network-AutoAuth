@@ -6,7 +6,8 @@ $LoginScript = Join-Path $ProjectRoot "scripts\Invoke-SHUAutoAuth.ps1"
 $ConfigPath = Join-Path $ProjectRoot "config\portal.json"
 $PasswordPath = Join-Path $ProjectRoot "config\portal.password.bin"
 $TaskName = "SHUCampusNetworkAutoAuth"
-$TaskPath = "\SHU Campus Network AutoAuth\"
+$TaskPath = "\SHU NetAuth\"
+$LegacyTaskPath = "\SHU Campus Network AutoAuth\"
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -24,6 +25,13 @@ if (-not (Test-Path $LoginScript)) {
 
 if (-not (Test-Path $ConfigPath) -or -not (Test-Path $PasswordPath)) {
     throw "Configuration is missing. Run configure.ps1 first."
+}
+
+$legacyTask = Get-ScheduledTask -TaskPath $LegacyTaskPath -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($legacyTask) {
+    Unregister-ScheduledTask -TaskPath $LegacyTaskPath -TaskName $TaskName -Confirm:$false
+    Write-Host "Removed legacy scheduled task:"
+    Write-Host "  $LegacyTaskPath$TaskName"
 }
 
 $powerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -55,7 +63,7 @@ Register-ScheduledTask `
     -Trigger @($startupTrigger, $repeatTrigger) `
     -Principal $principal `
     -Settings $settings `
-    -Description "Shanghai University campus network automatic authentication service." `
+    -Description "SHU NetAuth automatic campus network authentication service." `
     -Force | Out-Null
 
 Write-Host "Scheduled task installed:"

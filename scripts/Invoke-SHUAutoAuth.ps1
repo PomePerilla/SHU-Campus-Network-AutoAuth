@@ -36,6 +36,99 @@ function Get-ConfigValue {
     return $Default
 }
 
+function Test-ConfigFlag {
+    param(
+        [pscustomobject]$Config,
+        [string]$Name,
+        [bool]$Default = $false
+    )
+
+    if (-not ($Config.PSObject.Properties.Name -contains $Name)) {
+        return $Default
+    }
+
+    return [bool]::Parse([string]$Config.$Name)
+}
+
+function Get-TrustedPortalHost {
+    param([pscustomobject]$Config)
+
+    $trustedHost = Get-ConfigValue -Config $Config -Name "TrustedPortalHost"
+    if (-not [string]::IsNullOrWhiteSpace($trustedHost)) {
+        return $trustedHost.ToLowerInvariant()
+    }
+
+    $gatewayUrl = Get-ConfigValue -Config $Config -Name "PortalGatewayUrl" -Default "http://10.10.9.9/"
+    return ([uri]$gatewayUrl).Host.ToLowerInvariant()
+}
+
+function Test-IsTrustedPortalUrl {
+    param(
+        [pscustomobject]$Config,
+        [string]$CandidateUrl,
+        [switch]$RequireQuery
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CandidateUrl)) {
+        return $false
+    }
+
+    try {
+        $uri = [uri]$CandidateUrl
+        $trustedHost = Get-TrustedPortalHost -Config $Config
+        $enforceTrustedPortal = Test-ConfigFlag -Config $Config -Name "EnforceTrustedPortal" -Default $true
+
+        if ($enforceTrustedPortal -and $uri.Host.ToLowerInvariant() -ne $trustedHost) {
+            return $false
+        }
+
+        if ($uri.AbsolutePath -notlike "/eportal/*") {
+            return $false
+        }
+
+        if ($RequireQuery -and [string]::IsNullOrWhiteSpace($uri.Query)) {
+            return $false
+        }
+
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
+function Assert-TrustedPortalUrl {
+    param(
+        [pscustomobject]$Config,
+        [string]$CandidateUrl,
+        [string]$Purpose
+    )
+
+    if (-not (Test-IsTrustedPortalUrl -Config $Config -CandidateUrl $CandidateUrl)) {
+        $trustedHost = Get-TrustedPortalHost -Config $Config
+        throw "$Purpose URL is not trusted. Expected an /eportal/ URL on host '$trustedHost', got '$CandidateUrl'."
+    }
+}
+
+function Test-IsTrustedPortalLoginPageUrl {
+    param(
+        [pscustomobject]$Config,
+        [string]$CandidateUrl
+    )
+
+    if (-not (Test-IsTrustedPortalUrl -Config $Config -CandidateUrl $CandidateUrl -RequireQuery)) {
+        return $false
+    }
+
+    try {
+        $uri = [uri]$CandidateUrl
+        return $uri.AbsolutePath -like "/eportal/index.jsp"
+    }
+    catch {
+        return $false
+    }
+}
+
 function Test-InternetAccess {
     param([pscustomobject]$Config)
 
@@ -168,22 +261,6 @@ function Get-QueryValue {
     return $pairs[$Name]
 }
 
-function Test-IsUsablePortalUrl {
-    param([string]$CandidateUrl)
-
-    if ([string]::IsNullOrWhiteSpace($CandidateUrl)) {
-        return $false
-    }
-
-    try {
-        $candidate = [uri]$CandidateUrl
-        return -not [string]::IsNullOrWhiteSpace($candidate.Query)
-    }
-    catch {
-        return $false
-    }
-}
-
 function ConvertTo-AbsolutePortalUrl {
     param(
         [string]$CandidateUrl,
@@ -203,6 +280,7 @@ function ConvertTo-AbsolutePortalUrl {
 
 function Find-PortalUrlInContent {
     param(
+        [pscustomobject]$Config,
         [string]$Content,
         [uri]$BaseUri
     )
@@ -215,14 +293,14 @@ function Find-PortalUrlInContent {
 
     foreach ($match in [regex]::Matches($decoded, 'https?://[^\s"''<>]+')) {
         $candidate = $match.Value
-        if ($candidate -like "*/eportal/index.jsp?*" -and (Test-IsUsablePortalUrl -CandidateUrl $candidate)) {
+        if (Test-IsTrustedPortalLoginPageUrl -Config $Config -CandidateUrl $candidate) {
             return $candidate
         }
     }
 
     foreach ($match in [regex]::Matches($decoded, '/eportal/index\.jsp\?[^\s"''<>]+')) {
         $candidate = ConvertTo-AbsolutePortalUrl -CandidateUrl $match.Value -BaseUri $BaseUri
-        if (Test-IsUsablePortalUrl -CandidateUrl $candidate) {
+        if (Test-IsTrustedPortalLoginPageUrl -Config $Config -CandidateUrl $candidate) {
             return $candidate
         }
     }
@@ -262,19 +340,22 @@ function Find-PortalLoginUrl {
 
             if ($response.BaseResponse -and $response.BaseResponse.ResponseUri) {
                 $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
-                if ($finalUrl -like "*/eportal/index.jsp?*" -and (Test-IsUsablePortalUrl -CandidateUrl $finalUrl)) {
-                    Write-Log "Detected ePortal login URL from redirect."
+                if (Test-IsTrustedPortalLoginPageUrl -Config $Config -CandidateUrl $finalUrl) {
+                    Write-Log "Detected trusted ePortal login URL from redirect."
                     return $finalUrl
                 }
 
                 if ($finalUrl -like "*/eportal/success.jsp*") {
                     Write-Log "Portal reports this device is already authenticated."
                 }
+                elseif ($finalUrl -like "*/eportal/*") {
+                    Write-Log "Ignored untrusted portal URL from redirect: $finalUrl"
+                }
             }
 
-            $foundUrl = Find-PortalUrlInContent -Content $response.Content -BaseUri ([uri]$target)
+            $foundUrl = Find-PortalUrlInContent -Config $Config -Content $response.Content -BaseUri ([uri]$target)
             if ($foundUrl) {
-                Write-Log "Detected ePortal login URL from response content."
+                Write-Log "Detected trusted ePortal login URL from response content."
                 return $foundUrl
             }
         }
@@ -300,13 +381,7 @@ function Get-CurrentQueryString {
         return $fallbackQueryString
     }
 
-    $legacyQueryString = Get-ConfigValue -Config $Config -Name "QueryString"
-    if (-not [string]::IsNullOrWhiteSpace($legacyQueryString)) {
-        Write-Log "Using legacy configured ePortal query string."
-        return $legacyQueryString
-    }
-
-    throw "Could not detect an ePortal login URL and no fallback query string is configured."
+    throw "Could not detect a trusted ePortal login URL and no fallback query string is configured."
 }
 
 function Get-EPortalPageInfo {
@@ -324,6 +399,8 @@ function Get-EPortalPageInfo {
 
         $pageInfoUrl = $loginUrl -replace 'method=login', 'method=pageInfo'
     }
+
+    Assert-TrustedPortalUrl -Config $Config -CandidateUrl $pageInfoUrl -Purpose "pageInfo"
 
     try {
         $response = Invoke-WebRequest `
@@ -350,23 +427,45 @@ function Get-PortalCryptoSettings {
 
     $settings = [ordered]@{
         PasswordEncrypt = Get-ConfigValue -Config $Config -Name "PasswordEncrypt" -Default "true"
-        PublicKeyExponent = Get-ConfigValue -Config $Config -Name "PublicKeyExponent"
-        PublicKeyModulus = Get-ConfigValue -Config $Config -Name "PublicKeyModulus"
+        PublicKeyExponent = Get-ConfigValue -Config $Config -Name "TrustedPublicKeyExponent"
+        PublicKeyModulus = Get-ConfigValue -Config $Config -Name "TrustedPublicKeyModulus"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($settings.PublicKeyExponent) -or [string]::IsNullOrWhiteSpace($settings.PublicKeyModulus)) {
+        throw "Trusted ePortal public key is not configured."
     }
 
     $pageInfo = Get-EPortalPageInfo -Config $Config -QueryString $QueryString
     if ($null -ne $pageInfo) {
-        if ($pageInfo.PSObject.Properties.Name -contains "passwordEncrypt" -and -not [string]::IsNullOrWhiteSpace([string]$pageInfo.passwordEncrypt)) {
-            $settings.PasswordEncrypt = [string]$pageInfo.passwordEncrypt
+        $returnedEncrypt = ""
+        $returnedExponent = ""
+        $returnedModulus = ""
+
+        if ($pageInfo.PSObject.Properties.Name -contains "passwordEncrypt") {
+            $returnedEncrypt = [string]$pageInfo.passwordEncrypt
+        }
+        if ($pageInfo.PSObject.Properties.Name -contains "publicKeyExponent") {
+            $returnedExponent = [string]$pageInfo.publicKeyExponent
+        }
+        if ($pageInfo.PSObject.Properties.Name -contains "publicKeyModulus") {
+            $returnedModulus = [string]$pageInfo.publicKeyModulus
         }
 
-        if ($pageInfo.PSObject.Properties.Name -contains "publicKeyExponent" -and -not [string]::IsNullOrWhiteSpace([string]$pageInfo.publicKeyExponent)) {
-            $settings.PublicKeyExponent = [string]$pageInfo.publicKeyExponent
+        if (-not [string]::IsNullOrWhiteSpace($returnedEncrypt)) {
+            $settings.PasswordEncrypt = $returnedEncrypt
         }
 
-        if ($pageInfo.PSObject.Properties.Name -contains "publicKeyModulus" -and -not [string]::IsNullOrWhiteSpace([string]$pageInfo.publicKeyModulus)) {
-            $settings.PublicKeyModulus = [string]$pageInfo.publicKeyModulus
+        if (-not [string]::IsNullOrWhiteSpace($returnedExponent) -and $returnedExponent -ne $settings.PublicKeyExponent) {
+            throw "ePortal public key exponent mismatch. Refusing to submit credentials."
         }
+
+        if (-not [string]::IsNullOrWhiteSpace($returnedModulus) -and $returnedModulus -ne $settings.PublicKeyModulus) {
+            throw "ePortal public key modulus mismatch. Refusing to submit credentials."
+        }
+    }
+
+    if (Test-ConfigFlag -Config $Config -Name "RequirePasswordEncrypt" -Default $true -and [string]$settings.PasswordEncrypt -ne "true") {
+        throw "ePortal did not require password encryption. Refusing to submit credentials."
     }
 
     return [pscustomobject]$settings
@@ -415,6 +514,8 @@ try {
     }
 
     $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+    Assert-TrustedPortalUrl -Config $config -CandidateUrl ([string]$config.LoginUrl) -Purpose "login"
 
     if (Test-InternetAccess -Config $config) {
         Write-Log "Internet is already available. No login needed."

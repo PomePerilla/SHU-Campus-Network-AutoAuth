@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $PSCommandPath
 $TaskName = "SHUCampusNetworkAutoAuth"
-$TaskPath = "\SHU Campus Network AutoAuth\"
+$TaskPath = "\SHU NetAuth\"
 $ConfigPath = Join-Path $ProjectRoot "config\portal.json"
 $PasswordPath = Join-Path $ProjectRoot "config\portal.password.bin"
 $ConfigureScript = Join-Path $ProjectRoot "configure.ps1"
@@ -174,7 +174,7 @@ try {
     Set-Location -LiteralPath $ProjectRoot
     $host.UI.RawUI.WindowTitle = "SHU Campus Network AutoAuth Setup"
 
-    Write-Host "SHU Campus Network AutoAuth CLI v0.1.3 Setup" -ForegroundColor Green
+    Write-Host "SHU NetAuth v1.0.0 Setup" -ForegroundColor Green
     Write-Host "This wizard will configure credentials, install the startup task, run a test, and report status."
 
     Show-SystemStatus

@@ -2,7 +2,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $TaskName = "SHUCampusNetworkAutoAuth"
-$TaskPath = "\SHU Campus Network AutoAuth\"
+$TaskPath = "\SHU NetAuth\"
+$LegacyTaskPath = "\SHU Campus Network AutoAuth\"
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -14,13 +15,18 @@ if (-not (Test-IsAdministrator)) {
     throw "Administrator PowerShell is required to uninstall the startup task."
 }
 
-$task = Get-ScheduledTask -TaskPath $TaskPath -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($task) {
-    Unregister-ScheduledTask -TaskPath $TaskPath -TaskName $TaskName -Confirm:$false
-    Write-Host "Scheduled task removed:"
-    Write-Host "  $TaskPath$TaskName"
+$removed = $false
+foreach ($path in @($TaskPath, $LegacyTaskPath)) {
+    $task = Get-ScheduledTask -TaskPath $path -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($task) {
+        Unregister-ScheduledTask -TaskPath $path -TaskName $TaskName -Confirm:$false
+        Write-Host "Scheduled task removed:"
+        Write-Host "  $path$TaskName"
+        $removed = $true
+    }
 }
-else {
+
+if (-not $removed) {
     Write-Host "Scheduled task does not exist:"
     Write-Host "  $TaskPath$TaskName"
 }
