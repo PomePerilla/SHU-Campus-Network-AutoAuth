@@ -25,6 +25,18 @@ v0.2.0/  图形界面版
 
 进入 [v0.1.3](v0.1.3/) 查看命令行版本的安装和使用说明。
 
+## Recommended Download
+
+普通用户建议从 GitHub Releases 下载发布包，而不是使用 `Code -> Download ZIP`：
+
+[Download SHU-CNAA-v0.1.3.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v0.1.3/SHU-CNAA-v0.1.3.zip)
+
+解压后双击：
+
+```text
+setup.cmd
+```
+
 ## Roadmap
 
 开发路线见 [ROADMAP.md](ROADMAP.md)。

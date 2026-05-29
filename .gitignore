@@ -17,6 +17,7 @@ v*/logs/
 *.log
 *.tmp
 *.bak
+/dist/
 
 # Editor/OS files
 .vscode/

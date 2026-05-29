@@ -29,7 +29,19 @@
 
 ## Download
 
-方式一：下载 ZIP。
+推荐方式：下载 Release 包。
+
+```text
+https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v0.1.3/SHU-CNAA-v0.1.3.zip
+```
+
+解压后进入：
+
+```text
+SHU-CNAA-v0.1.3
+```
+
+方式二：下载源码 ZIP。
 
 打开仓库页面：
 
@@ -43,7 +55,7 @@ https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth
 SHU-Campus-Network-AutoAuth-main\v0.1.3
 ```
 
-方式二：使用 Git。
+方式三：使用 Git。
 
 ```powershell
 git clone https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth.git
