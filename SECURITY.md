@@ -1,6 +1,6 @@
 # Security
 
-This document describes how SHU NetAuth v1.0.0 handles credentials and what security limits remain.
+This document describes how SHU NetAuth v1.0.1 handles credentials and what security limits remain.
 
 ## Local Credential Storage
 
@@ -60,7 +60,7 @@ This is still not a defense against a compromised local machine, local administr
 
 The Shanghai University ePortal flow observed during development uses HTTP and may involve redirects or pages that are not consistently reproduced by PowerShell's simple HTTP probing.
 
-Earlier strict security checks blocked real authentication in this environment. In v1.0.0, SHU NetAuth prioritizes compatibility:
+Earlier strict security checks blocked real authentication in this environment. In v1.0.1, SHU NetAuth prioritizes compatibility:
 
 - `Invoke-SecurityPolicyCheck` is reserved as a future security-policy interface.
 - Host pinning is not enforced.
@@ -100,3 +100,13 @@ The local DPAPI password file is not uploaded.
 - Do not publish complete ePortal long URLs.
 - If campus network authentication fails after changing network attachment, rerun `setup.cmd` and paste a fresh ePortal URL.
 - If you suspect compromise, change your campus network password and rerun setup.
+
+## Logs
+
+User-facing setup output is intentionally minimal. Detailed setup, network, task, and authentication events are written to:
+
+```text
+logs\shu-netauth.log
+```
+
+Logs should not contain plaintext passwords. They may contain local status, HTTP errors, and operational details useful for troubleshooting.

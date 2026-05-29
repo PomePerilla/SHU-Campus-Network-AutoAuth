@@ -1,6 +1,6 @@
 # Technical Notes
 
-This document records the current SHU NetAuth v1.0.0 technical path and known limitations.
+This document records the current SHU NetAuth v1.0.1 technical path and known limitations.
 
 ## Observed Campus Portal Behavior
 
@@ -35,9 +35,9 @@ http://123.123.123.123/
 
 On some networks, these requests do not return the full `/eportal/index.jsp?...` URL that the browser sees. When that happens, the script cannot construct the login request unless a fallback query string is already configured.
 
-## Current v1.0.0 Approach
+## Current v1.0.1 Approach
 
-SHU NetAuth v1.0.0 uses a pragmatic compatibility approach:
+SHU NetAuth v1.0.1 uses a pragmatic compatibility approach:
 
 1. The user opens `http://10.10.9.9` in a browser.
 2. The user copies the complete ePortal URL from the browser address bar.
@@ -106,7 +106,7 @@ function Invoke-SecurityPolicyCheck {
 }
 ```
 
-In v1.0.0 this does not enforce rules. The project previously attempted strict host and public-key checks, but those checks blocked the observed SHU portal flow. Security policy work is therefore postponed until the automatic detector and real portal flow are better understood.
+In v1.0.1 this does not enforce rules. The project previously attempted strict host and public-key checks, but those checks blocked the observed SHU portal flow. Security policy work is therefore postponed until the automatic detector and real portal flow are better understood.
 
 Planned policy areas:
 
@@ -115,6 +115,10 @@ Planned policy areas:
 - Public-key pinning after confirming stable behavior.
 - Sensitive log redaction for query strings and user/session parameters.
 
+## User Interface And Logging
+
+v1.0.1 keeps the setup window simple. Users see only project status, network status, and the final result. Raw HTTP errors such as `502 Bad Gateway` are written to `logs\shu-netauth.log` instead of being shown in the normal setup UI.
+
 ## Current Priority
 
-v1.0.0 prioritizes a working startup authentication service with clear manual setup. Automatic long URL acquisition and stricter security policy enforcement are intentionally left as future work.
+v1.0.1 prioritizes a working startup authentication service with clear manual setup. Automatic long URL acquisition and stricter security policy enforcement are intentionally left as future work.

@@ -12,9 +12,26 @@ $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ConfigDir = Join-Path $ProjectRoot "config"
 $ConfigPath = Join-Path $ConfigDir "portal.json"
 $PasswordPath = Join-Path $ConfigDir "portal.password.bin"
+$LogDir = Join-Path $ProjectRoot "logs"
+$LogPath = Join-Path $LogDir "shu-netauth.log"
 
 $DefaultPublicKeyExponent = "10001"
 $DefaultPublicKeyModulus = "94dd2a8675fb779e6b9f7103698634cd400f27a154afa67af6166a43fc26417222a79506d34cacc7641946abda1785b7acf9910ad6a0978c91ec84d40b71d2891379af19ffb333e7517e390bd26ac312fe940c340466b4a5d4af1d65c3b5944078f96a1a51a5a53e4bc302818b7c9f63c4a1b07bd7d874cef1c3d4b2f5eb7871"
+
+function Write-AppLog {
+    param(
+        [string]$Message,
+        [string]$Level = "INFO",
+        [string]$Component = "config"
+    )
+
+    if (-not (Test-Path $LogDir)) {
+        New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -LiteralPath $LogPath -Value "[$timestamp] [$Level] [$Component] $Message" -Encoding UTF8
+}
 
 function Read-WithDefault {
     param(
@@ -47,7 +64,7 @@ function Read-RequiredFallbackUrl {
     while ($true) {
         $value = Read-Host $Prompt
         if ([string]::IsNullOrWhiteSpace($value)) {
-            Write-Host "The full ePortal login URL is required for this network. Paste the browser URL that starts with http://10.10.9.9/eportal/index.jsp?." -ForegroundColor Yellow
+            Write-Host "Please open http://10.10.9.9 in your browser, wait for the ePortal redirect, then paste the full address-bar URL here." -ForegroundColor Yellow
             continue
         }
 
@@ -60,7 +77,7 @@ function Read-RequiredFallbackUrl {
         catch {
         }
 
-        Write-Host "The URL must include the long query string after '?'. Please paste the full ePortal login URL." -ForegroundColor Yellow
+        Write-Host "The URL must include the long query string after '?'. Do not paste only http://10.10.9.9/." -ForegroundColor Yellow
     }
 }
 
@@ -166,19 +183,22 @@ if (-not (Test-Path $ConfigDir)) {
     New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
 }
 
-Write-Host "SHU NetAuth v1.0.0"
+Write-Host "SHU NetAuth v1.0.1"
 Write-Host ""
-Write-Host "This compatibility setup requires one full ePortal login URL fallback."
-Write-Host "Open the ePortal login page in a browser and paste the full URL that contains '?'."
+Write-Host "Before continuing:"
+Write-Host "1. Open http://10.10.9.9 in your browser."
+Write-Host "2. Wait until the browser redirects to the ePortal login page."
+Write-Host "3. Copy the full long URL from the browser address bar."
+Write-Host "4. Paste that full URL when this setup asks for it."
 Write-Host ""
+Write-AppLog -Message "Configuration started."
 
 if ([string]::IsNullOrWhiteSpace($Username)) {
     $Username = Read-RequiredString -Prompt "Campus network username"
 }
 
 $password = Read-RequiredSecureString -Prompt "Campus network password"
-$Service = Read-WithDefault -Prompt "Service name" -Default $Service
-$PortalGatewayUrl = Read-WithDefault -Prompt "Portal gateway URL" -Default $PortalGatewayUrl
+Write-AppLog -Message "Username captured. Service and portal gateway use defaults."
 
 if ([string]::IsNullOrWhiteSpace($FallbackPortalUrl)) {
     $FallbackPortalUrl = Read-RequiredFallbackUrl -Prompt "Full ePortal login URL fallback"
@@ -187,10 +207,11 @@ if ([string]::IsNullOrWhiteSpace($FallbackPortalUrl)) {
 $normalizedGatewayUrl = Normalize-PortalGatewayUrl -Url $PortalGatewayUrl
 $portalBaseUrl = Get-PortalBaseUrl -GatewayUrl $normalizedGatewayUrl
 $fallbackQueryString = Get-FallbackQueryString -PortalUrl $FallbackPortalUrl
+Write-AppLog -Message "Fallback query string captured. Length=$($fallbackQueryString.Length)."
 
 $config = [ordered]@{
     ProductName = "SHU NetAuth"
-    Version = "1.0.0"
+    Version = "1.0.1"
     PortalType = "SHU-EPortal"
     PortalGatewayUrl = $normalizedGatewayUrl
     LoginUrl = $portalBaseUrl + "InterFace.do?method=login"
@@ -218,11 +239,7 @@ $config = [ordered]@{
 
 $config | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ConfigPath -Encoding UTF8
 Protect-MachineString -SecureString $password | Set-Content -LiteralPath $PasswordPath -Encoding ASCII
+Write-AppLog -Message "Configuration and encrypted password saved."
 
 Write-Host ""
-Write-Host "Configuration saved:"
-Write-Host "  $ConfigPath"
-Write-Host "Encrypted password saved:"
-Write-Host "  $PasswordPath"
-Write-Host ""
-Write-Host "Next step: run install-startup-task.ps1 from an administrator PowerShell."
+Write-Host "Configuration saved."

@@ -5,10 +5,14 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ConfigPath = Join-Path $ProjectRoot "config\portal.json"
 $PasswordPath = Join-Path $ProjectRoot "config\portal.password.bin"
 $LogDir = Join-Path $ProjectRoot "logs"
-$LogPath = Join-Path $LogDir "shu-autoauth.log"
+$LogPath = Join-Path $LogDir "shu-netauth.log"
 
 function Write-Log {
-    param([string]$Message)
+    param(
+        [string]$Message,
+        [string]$Level = "INFO",
+        [string]$Component = "auth"
+    )
 
     if (-not (Test-Path $LogDir)) {
         New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
@@ -19,7 +23,7 @@ function Write-Log {
     }
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Add-Content -LiteralPath $LogPath -Value "[$timestamp] $Message" -Encoding UTF8
+    Add-Content -LiteralPath $LogPath -Value "[$timestamp] [$Level] [$Component] $Message" -Encoding UTF8
 }
 
 function Get-ConfigValue {
@@ -43,7 +47,7 @@ function Invoke-SecurityPolicyCheck {
         [string]$TargetUrl = ""
     )
 
-    # Reserved extension point. v1.0.0 does not enforce network security rules.
+    # Reserved extension point. v1.0.1 does not enforce network security rules.
     return $true
 }
 
@@ -291,7 +295,7 @@ function Find-PortalLoginUrl {
             }
         }
         catch {
-            Write-Log "Portal probe failed for $target`: $($_.Exception.Message)"
+            Write-Log -Level "WARN" -Message "Portal probe failed for $target`: $($_.Exception.Message)"
         }
     }
 
@@ -367,7 +371,7 @@ function Get-EPortalPageInfo {
         return $response.Content | ConvertFrom-Json
     }
     catch {
-        Write-Log "Could not fetch ePortal pageInfo: $($_.Exception.Message)"
+        Write-Log -Level "WARN" -Message "Could not fetch ePortal pageInfo: $($_.Exception.Message)"
         return $null
     }
 }
@@ -496,6 +500,6 @@ try {
     exit 1
 }
 catch {
-    Write-Log "Login failed: $($_.Exception.Message)"
+    Write-Log -Level "ERROR" -Message "Login failed: $($_.Exception.Message)"
     exit 1
 }

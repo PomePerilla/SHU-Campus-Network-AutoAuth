@@ -1,6 +1,6 @@
 ﻿{
   "ProductName": "SHU NetAuth",
-  "Version": "1.0.0",
+  "Version": "1.0.1",
   "PortalType": "SHU-EPortal",
   "PortalGatewayUrl": "http://10.10.9.9/",
   "LoginUrl": "http://10.10.9.9/eportal/InterFace.do?method=login",

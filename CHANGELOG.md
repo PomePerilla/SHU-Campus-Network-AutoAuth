@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1 - 2026-05-30
+
+- Simplified setup output to show only project status, network status, and final success or attention state.
+- Hid service name and portal gateway prompts from the normal setup flow; defaults remain `shu` and `http://10.10.9.9/`.
+- Added clearer browser instructions for manually copying the full ePortal login URL.
+- Added unified leveled logging to `logs\shu-netauth.log`.
+- Stopped showing raw HTTP errors such as gateway failures in the normal setup UI.
+
 ## v1.0.0 - 2026-05-30
 
 - Formalized the project as SHU NetAuth.

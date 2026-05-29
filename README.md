@@ -1,86 +1,131 @@
 # SHU NetAuth
 
-SHU NetAuth 是一个面向上海大学校园网 ePortal 认证环境的 Windows 自动认证工具。
+SHU NetAuth is a Windows startup authentication tool for the Shanghai University campus network ePortal environment.
 
-当前 `v1.0.0` 版本提供命令行安装向导：用户双击 `setup.cmd` 后，向导会自动请求管理员权限，检查系统和网络状态，收集校园网账号信息，保存本机配置，安装开机自动认证计划任务，并运行一次测试。
+Version `v1.0.1` focuses on a clean setup experience: users only need to enter their campus network username, password, and one full ePortal login URL copied from the browser. Detailed diagnostics are written to `logs\shu-netauth.log` instead of being shown in the setup window.
 
-## 适用环境
+## Supported Environment
 
-本项目只面向上海大学校园网 ePortal 认证环境。满足以下任一条件时通常可以使用：
-
-- Windows 电脑通过网口直连宿舍、实验室或其他校园网有线接口。
-- Windows 电脑通过路由器、交换机或其他子网络设备接入校园有线网，只要这台 Windows 电脑能访问 `http://10.10.9.9`。
-- Windows 电脑连接无线网络 `Shu(ForAll)`。
-- 其他能在浏览器访问 `http://10.10.9.9` 并进入上海大学 ePortal 登录页面的校内网络。
-
-不适用的情况：
-
-- 设备不在上海大学校园网环境内。
-- 无法访问 `http://10.10.9.9`。
-- 所在网络不使用上海大学 ePortal 认证。
-- 需要短信、二维码、CAS 单点登录或图形验证码等交互式认证方式。
-
-## 下载
-
-从 GitHub Releases 下载：
-
-[SHU-NetAuth-v1.0.0.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.0.0/SHU-NetAuth-v1.0.0.zip)
-
-解压后进入：
-
-```text
-SHU-NetAuth-v1.0.0
-```
-
-## 安装
-
-先在浏览器访问：
+SHU NetAuth is intended for Shanghai University networks where a Windows device can access:
 
 ```text
 http://10.10.9.9
 ```
 
-进入 ePortal 登录页后，复制浏览器地址栏中的完整长地址。它通常以：
+Typical supported cases:
+
+- Wired campus network.
+- A Windows PC connected through a router or switch to the campus network.
+- Wireless network `Shu(ForAll)`.
+- Other campus access paths that can open the SHU ePortal login page.
+
+Unsupported cases:
+
+- Non-SHU networks.
+- Networks where `http://10.10.9.9` is unreachable.
+- Login flows requiring SMS, QR code, CAS, CAPTCHA, or other interactive verification.
+
+## Download
+
+Download from GitHub Releases:
+
+[SHU-NetAuth-v1.0.1.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.0.1/SHU-NetAuth-v1.0.1.zip)
+
+Extract the package and open:
+
+```text
+SHU-NetAuth-v1.0.1
+```
+
+## Setup
+
+Before running setup, open this address in your browser:
+
+```text
+http://10.10.9.9
+```
+
+Wait until the browser redirects to the ePortal login page. Then copy the full long URL from the browser address bar. It usually starts with:
 
 ```text
 http://10.10.9.9/eportal/index.jsp?
 ```
 
-开头，并带有一长串参数。不要只复制 `http://10.10.9.9/`。
+Do not copy only `http://10.10.9.9/`. The full URL must include the long query string after `?`.
 
-然后双击运行：
+Then run:
 
 ```text
 setup.cmd
 ```
 
-安装向导会要求输入：
+The setup wizard asks for:
 
-- 校园网账号。
-- 校园网密码。
-- 服务名，默认是 `shu`。
-- Portal 网关地址，默认是 `http://10.10.9.9/`。
-- 完整 ePortal 登录 URL fallback，也就是上面从浏览器复制的长地址。
+- Campus network username.
+- Campus network password.
+- Full ePortal login URL fallback.
 
-安装完成后会创建计划任务：
+The service name and portal gateway are hidden from the normal setup flow and use these defaults:
+
+```text
+Service = shu
+PortalGatewayUrl = http://10.10.9.9/
+```
+
+After setup, SHU NetAuth creates this Scheduled Task:
 
 ```text
 \SHU NetAuth\SHUCampusNetworkAutoAuth
 ```
 
-该任务会在 Windows 开机时以 `SYSTEM` 身份运行，并每 5 分钟补充检查一次。
+It runs as `SYSTEM` at Windows startup and checks every 5 minutes.
 
-## 当前限制
+## User Interface
 
-目前无法在所有环境中稳定通过简单访问 `http://10.10.9.9/` 自动获得完整 ePortal 登录长地址。当前版本要求用户人工复制一次完整长地址，并把其中的 query string 保存为 fallback。
+The setup window intentionally shows only simple user-facing status:
 
-这个长地址通常包含设备 IP、接入控制器、端口、VLAN、MAC 等参数。它通常只适合同一台设备、同一个网络接口、同一种接入环境短期复用。换设备、换网口、换路由器、切换有线/无线或学校后端参数变化后，可能需要重新运行 `setup.cmd` 并粘贴新的长地址。
+```text
+Project Status
+Network Status
+SUCCESS
+SETUP NEEDS ATTENTION
+```
 
-代码中已预留 `Get-AutoDetectedPortalUrl` 接口，后续自动长地址获取模块会接入这里。
+Raw HTTP errors, gateway status codes, file paths, and runtime details are written to:
 
-## 手动命令
+```text
+logs\shu-netauth.log
+```
 
-推荐使用 `setup.cmd`。如需手动操作：
+## Current Limitation
+
+SHU NetAuth cannot yet reliably obtain the full ePortal login URL automatically from `http://10.10.9.9/` in every campus network state. The current release therefore asks users to manually copy the browser's full ePortal URL once during setup.
+
+The copied long URL may be tied to the current device, network interface, access controller, port, VLAN, or IP environment. It may work for the same device and same access path for some time, but it is not guaranteed to work across devices or after network attachment changes.
+
+If authentication stops working after changing ports, routers, wired/wireless mode, or network environment, run `setup.cmd` again and paste a fresh ePortal URL.
+
+## Reserved Interfaces
+
+The main authentication script reserves:
+
+```powershell
+Get-AutoDetectedPortalUrl
+```
+
+for future automatic long URL detection.
+
+It also reserves:
+
+```powershell
+Invoke-SecurityPolicyCheck
+```
+
+for future security policy enforcement. In `v1.0.1`, this interface does not enforce host pinning, public-key pinning, or credential endpoint restrictions.
+
+## Manual Commands
+
+The setup wizard is recommended. Manual commands are:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\configure.ps1
@@ -88,36 +133,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install-startup-task.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\test-login.ps1
 ```
 
-`install-startup-task.ps1` 需要管理员 PowerShell。
+`install-startup-task.ps1` requires administrator PowerShell.
 
-查看日志：
+View logs:
 
 ```powershell
-Get-Content .\logs\shu-autoauth.log -Tail 50
+Get-Content .\logs\shu-netauth.log -Tail 50
 ```
 
-如果当前已经联网，测试脚本会直接退出并记录：
+## Security
 
-```text
-Internet is already available. No login needed.
-```
-
-这是正常行为。
-
-## 安全
-
-校园网账号写入：
+The username is stored in:
 
 ```text
 config\portal.json
 ```
 
-密码不会明文写入配置文件，而是保存为：
+The password is stored in:
 
 ```text
 config\portal.password.bin
 ```
 
-该文件使用 Windows DPAPI `LocalMachine` 作用域加密，使计划任务能在用户未登录时由 `SYSTEM` 解密并执行认证。
+The password file is protected with Windows DPAPI `LocalMachine` scope so the startup task can run as `SYSTEM` before user login. Use SHU NetAuth only on trusted personal devices.
 
-当前版本的安全策略组仍在开发中，代码中已预留 `Invoke-SecurityPolicyCheck` 接口，但不启用 host pinning、public key pinning 或 credential endpoint restriction 等强校验。详细说明见 [SECURITY.md](SECURITY.md) 和 [TECHNICAL_NOTES.md](TECHNICAL_NOTES.md)。
+See [SECURITY.md](SECURITY.md) and [TECHNICAL_NOTES.md](TECHNICAL_NOTES.md) for details.

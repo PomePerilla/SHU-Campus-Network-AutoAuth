@@ -11,7 +11,23 @@ $PasswordPath = Join-Path $ProjectRoot "config\portal.password.bin"
 $ConfigureScript = Join-Path $ProjectRoot "configure.ps1"
 $InstallScript = Join-Path $ProjectRoot "install-startup-task.ps1"
 $TestScript = Join-Path $ProjectRoot "test-login.ps1"
-$LogPath = Join-Path $ProjectRoot "logs\shu-autoauth.log"
+$LogDir = Join-Path $ProjectRoot "logs"
+$LogPath = Join-Path $LogDir "shu-netauth.log"
+
+function Write-AppLog {
+    param(
+        [string]$Message,
+        [string]$Level = "INFO",
+        [string]$Component = "setup"
+    )
+
+    if (-not (Test-Path $LogDir)) {
+        New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -LiteralPath $LogPath -Value "[$timestamp] [$Level] [$Component] $Message" -Encoding UTF8
+}
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -81,68 +97,49 @@ function Test-HttpProbe {
             Success = $matched
             StatusCode = [int]$response.StatusCode
             Category = $category
+            Error = ""
         }
     }
     catch {
+        Write-AppLog -Level "WARN" -Message "HTTP probe failed. Url=$Url Error=$($_.Exception.Message)"
         return [pscustomobject]@{
             Success = $false
             StatusCode = 0
-            Category = $_.Exception.Message
+            Category = "unavailable"
+            Error = $_.Exception.Message
         }
     }
 }
 
-function Show-SystemStatus {
-    Write-Section "System"
-    $os = Get-CimInstance Win32_OperatingSystem
-    Write-Item "OS" "$($os.Caption) $($os.Version)"
-    Write-Item "PowerShell" "$($PSVersionTable.PSVersion)"
-    Write-Item "Administrator" "$(Test-IsAdministrator)"
-    Write-Item "Project path" $ProjectRoot
-    Write-Item "Config exists" "$(Test-Path $ConfigPath)"
-    Write-Item "Password exists" "$(Test-Path $PasswordPath)"
+function Show-UserStatus {
+    Write-Section "Project Status"
+    $configExists = Test-Path $ConfigPath
+    $passwordExists = Test-Path $PasswordPath
+    Write-Item "Config" $(if ($configExists) { "Ready" } else { "Not configured" })
+    Write-Item "Password" $(if ($passwordExists) { "Ready" } else { "Not configured" })
 
-    Write-Section "Network"
-    if (Get-Command Get-NetAdapter -ErrorAction SilentlyContinue) {
-        $adapters = Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 6
-        if ($adapters) {
-            foreach ($adapter in $adapters) {
-                Write-Item "Adapter" "$($adapter.Name) / $($adapter.InterfaceDescription) / $($adapter.LinkSpeed)"
-            }
+    $task = Get-ScheduledTask -TaskPath $TaskPath -TaskName $TaskName -ErrorAction SilentlyContinue
+    Write-Item "Startup task" $(if ($task) { "Installed" } else { "Not installed" })
+    if ($task) {
+        try {
+            $taskInfo = Get-ScheduledTaskInfo -TaskPath $TaskPath -TaskName $TaskName
+            Write-AppLog -Message "Task status checked. State=$($task.State) LastRun=$($taskInfo.LastRunTime) LastResult=$($taskInfo.LastTaskResult)"
         }
-        else {
-            Write-Item "Adapter" "No active adapter reported"
+        catch {
+            Write-AppLog -Level "WARN" -Message "Could not read task info: $($_.Exception.Message)"
         }
     }
-    else {
-        Write-Item "Adapter" "Get-NetAdapter unavailable"
-    }
 
+    Write-Section "Network Status"
     $internet = Test-HttpProbe `
         -Url "http://www.msftconnecttest.com/connecttest.txt" `
         -ExpectedContent "Microsoft Connect Test"
-    Write-Item "Internet test" "$($internet.Success) / HTTP $($internet.StatusCode) / $($internet.Category)"
+    Write-Item "Internet" $(if ($internet.Success) { "Available" } else { "Unavailable" })
+    Write-AppLog -Message "Internet probe finished. Success=$($internet.Success) Status=$($internet.StatusCode) Category=$($internet.Category)"
 
     $portal = Test-HttpProbe -Url "http://10.10.9.9/"
-    Write-Item "Portal gateway" "$($portal.Success) / HTTP $($portal.StatusCode) / $($portal.Category)"
-
-    Write-Section "Scheduled Task"
-    $task = Get-ScheduledTask -TaskPath $TaskPath -TaskName $TaskName -ErrorAction SilentlyContinue
-    if ($task) {
-        Write-Item "Task" "$TaskPath$TaskName"
-        Write-Item "State" "$($task.State)"
-        try {
-            $taskInfo = Get-ScheduledTaskInfo -TaskPath $TaskPath -TaskName $TaskName
-            Write-Item "Last run" "$($taskInfo.LastRunTime)"
-            Write-Item "Last result" "$($taskInfo.LastTaskResult)"
-        }
-        catch {
-            Write-Item "Task info" $_.Exception.Message
-        }
-    }
-    else {
-        Write-Item "Task" "Not installed"
-    }
+    Write-Item "Portal gateway" $(if ($portal.Success) { "Reachable" } else { "Unavailable" })
+    Write-AppLog -Message "Portal probe finished. Success=$($portal.Success) Status=$($portal.StatusCode) Category=$($portal.Category)"
 }
 
 function Invoke-SetupStep {
@@ -156,16 +153,13 @@ function Invoke-SetupStep {
 }
 
 function Show-FinalStatus {
-    Show-SystemStatus
-
-    if (Test-Path $LogPath) {
-        Write-Section "Recent Log"
-        Get-Content -LiteralPath $LogPath -Tail 20
-    }
+    Show-UserStatus
+    Write-Item "Detailed logs" $LogPath
 }
 
 if (-not (Test-IsAdministrator)) {
     Write-Host "Administrator permission is required. A Windows UAC prompt will open." -ForegroundColor Yellow
+    Write-AppLog -Message "Setup started without administrator permission. Requesting elevation."
     Start-Elevated
     exit 0
 }
@@ -174,39 +168,50 @@ try {
     Set-Location -LiteralPath $ProjectRoot
     $host.UI.RawUI.WindowTitle = "SHU NetAuth Setup"
 
-    Write-Host "SHU NetAuth v1.0.0 Setup" -ForegroundColor Green
-    Write-Host "This wizard will configure credentials, save the ePortal fallback URL, install the startup task, run a test, and report status."
+    Write-AppLog -Message "Setup wizard started."
+    Write-Host "SHU NetAuth v1.0.1 Setup" -ForegroundColor Green
+    Write-Host "This wizard will configure SHU NetAuth and keep detailed logs in logs\shu-netauth.log."
 
-    Show-SystemStatus
+    Show-UserStatus
 
     Write-Host ""
     Read-Host "Press Enter to start configuration, or close this window to cancel"
 
     Invoke-SetupStep -Name "Configure" -Action {
+        Write-AppLog -Message "Configure step started."
         & $ConfigureScript
+        Write-AppLog -Message "Configure step completed."
     }
 
     Invoke-SetupStep -Name "Install Startup Task" -Action {
+        Write-AppLog -Message "Install task step started."
         & $InstallScript
+        Write-AppLog -Message "Install task step completed."
     }
 
     Invoke-SetupStep -Name "Test Login Script" -Action {
+        Write-AppLog -Message "Test login step started."
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $TestScript
         $testExitCode = $LASTEXITCODE
-        Write-Item "Test exit code" "$testExitCode"
+        Write-AppLog -Message "Test login step completed. ExitCode=$testExitCode"
+        if ($testExitCode -ne 0) {
+            throw "Authentication test failed. See logs\shu-netauth.log for details."
+        }
     }
 
-    Write-Section "Final Status"
-    Show-FinalStatus
-
     Write-Host ""
-    Write-Host "Setup finished." -ForegroundColor Green
+    Write-Host "SUCCESS" -ForegroundColor Green
+    Write-Host "SHU NetAuth is installed and ready."
+    Write-Host "Detailed logs: logs\shu-netauth.log"
+    Write-AppLog -Message "Setup completed successfully."
     Read-Host "Press Enter to close"
 }
 catch {
     Write-Host ""
-    Write-Host "Setup failed:" -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host "SETUP NEEDS ATTENTION" -ForegroundColor Red
+    Write-Host "Please check the ePortal login URL and run setup again."
+    Write-Host "Detailed logs: logs\shu-netauth.log"
+    Write-AppLog -Level "ERROR" -Message "Setup failed: $($_.Exception.Message)"
     Write-Host ""
     Read-Host "Press Enter to close"
     exit 1

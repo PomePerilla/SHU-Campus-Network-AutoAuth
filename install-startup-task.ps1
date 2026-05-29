@@ -5,8 +5,25 @@ $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LoginScript = Join-Path $ProjectRoot "scripts\Invoke-SHUAutoAuth.ps1"
 $ConfigPath = Join-Path $ProjectRoot "config\portal.json"
 $PasswordPath = Join-Path $ProjectRoot "config\portal.password.bin"
+$LogDir = Join-Path $ProjectRoot "logs"
+$LogPath = Join-Path $LogDir "shu-netauth.log"
 $TaskName = "SHUCampusNetworkAutoAuth"
 $TaskPath = "\SHU NetAuth\"
+
+function Write-AppLog {
+    param(
+        [string]$Message,
+        [string]$Level = "INFO",
+        [string]$Component = "task"
+    )
+
+    if (-not (Test-Path $LogDir)) {
+        New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -LiteralPath $LogPath -Value "[$timestamp] [$Level] [$Component] $Message" -Encoding UTF8
+}
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -57,13 +74,13 @@ Register-ScheduledTask `
     -Settings $settings `
     -Description "Shanghai University campus network automatic authentication service." `
     -Force | Out-Null
+Write-AppLog -Message "Scheduled task registered: $TaskPath$TaskName"
 
 $legacyTaskPath = "\SHU Campus Network AutoAuth\"
 $legacyTask = Get-ScheduledTask -TaskPath $legacyTaskPath -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($legacyTask) {
     Unregister-ScheduledTask -TaskPath $legacyTaskPath -TaskName $TaskName -Confirm:$false
+    Write-AppLog -Message "Legacy scheduled task removed: $legacyTaskPath$TaskName"
 }
 
-Write-Host "Scheduled task installed:"
-Write-Host "  $TaskPath$TaskName"
-Write-Host "The task runs at Windows startup as SYSTEM and checks every 5 minutes."
+Write-Host "Startup task installed."
