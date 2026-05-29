@@ -1,96 +1,86 @@
 # SHU NetAuth
 
-SHU NetAuth is a lightweight Windows setup wizard and startup task for Shanghai University campus network ePortal authentication.
+SHU NetAuth 是一个面向上海大学校园网 ePortal 认证环境的 Windows 自动认证工具。
 
-It is designed for unattended Windows devices that need to regain campus network access after reboot, power loss, cable reconnection, or portal session expiration.
+当前 `v1.0.0` 版本提供命令行安装向导：用户双击 `setup.cmd` 后，向导会自动请求管理员权限，检查系统和网络状态，收集校园网账号信息，保存本机配置，安装开机自动认证计划任务，并运行一次测试。
 
-## Supported Network Environments
+## 适用环境
 
-SHU NetAuth is intended for Shanghai University networks that use the ePortal gateway at `http://10.10.9.9`.
+本项目只面向上海大学校园网 ePortal 认证环境。满足以下任一条件时通常可以使用：
 
-It is expected to work in these cases:
+- Windows 电脑通过网口直连宿舍、实验室或其他校园网有线接口。
+- Windows 电脑通过路由器、交换机或其他子网络设备接入校园有线网，只要这台 Windows 电脑能访问 `http://10.10.9.9`。
+- Windows 电脑连接无线网络 `Shu(ForAll)`。
+- 其他能在浏览器访问 `http://10.10.9.9` 并进入上海大学 ePortal 登录页面的校内网络。
 
-- Wired campus network: a Windows PC connects directly to a dormitory, lab, or campus Ethernet port.
-- Sub-network devices: a Windows PC connects through a router, switch, or similar local network device, as long as the Windows PC can reach `http://10.10.9.9` and complete ePortal authentication.
-- Wireless campus network: a Windows PC connects to `Shu(ForAll)`.
-- Other campus network paths where a browser can reach `http://10.10.9.9` and open the Shanghai University ePortal login page.
+不适用的情况：
 
-It is not intended for:
+- 设备不在上海大学校园网环境内。
+- 无法访问 `http://10.10.9.9`。
+- 所在网络不使用上海大学 ePortal 认证。
+- 需要短信、二维码、CAS 单点登录或图形验证码等交互式认证方式。
 
-- Devices outside Shanghai University campus network environments.
-- Networks where `http://10.10.9.9` is unreachable.
-- Networks that do not use Shanghai University ePortal authentication.
-- Interactive login flows requiring SMS, QR codes, CAS single sign-on, or CAPTCHA.
+## 下载
 
-## Download
-
-Download the release package from GitHub Releases:
+从 GitHub Releases 下载：
 
 [SHU-NetAuth-v1.0.0.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.0.0/SHU-NetAuth-v1.0.0.zip)
 
-Extract the ZIP file. The extracted folder should look like:
+解压后进入：
 
 ```text
-SHU-NetAuth-v1.0.0/
-  setup.cmd
-  setup.ps1
-  configure.ps1
-  install-startup-task.ps1
-  uninstall-startup-task.ps1
-  test-login.ps1
-  scripts/
-  config/
+SHU-NetAuth-v1.0.0
 ```
 
-## Quick Setup
+## 安装
 
-Open the extracted folder and double-click:
+先在浏览器访问：
+
+```text
+http://10.10.9.9
+```
+
+进入 ePortal 登录页后，复制浏览器地址栏中的完整长地址。它通常以：
+
+```text
+http://10.10.9.9/eportal/index.jsp?
+```
+
+开头，并带有一长串参数。不要只复制 `http://10.10.9.9/`。
+
+然后双击运行：
 
 ```text
 setup.cmd
 ```
 
-The setup wizard will:
+安装向导会要求输入：
 
-- Request administrator permission through Windows UAC.
-- Show Windows, PowerShell, project path, configuration, and credential-file status.
-- Show active network adapters.
-- Check internet connectivity.
-- Check the campus portal gateway at `http://10.10.9.9`.
-- Check whether the startup Scheduled Task is already installed.
-- Ask for campus network username, password, service name, and portal gateway.
-- Save local configuration and encrypted password files.
-- Install the Windows startup Scheduled Task.
-- Run one test pass.
-- Show final task status and recent logs.
+- 校园网账号。
+- 校园网密码。
+- 服务名，默认是 `shu`。
+- Portal 网关地址，默认是 `http://10.10.9.9/`。
+- 完整 ePortal 登录 URL fallback，也就是上面从浏览器复制的长地址。
 
-The UAC prompt must be approved by the user. SHU NetAuth cannot bypass Windows administrator permission.
-
-## Configuration Inputs
-
-The setup wizard asks for:
-
-- Campus network username.
-- Campus network password. Empty passwords are rejected and the wizard will ask again.
-- Service name. The default is `shu`.
-- Portal gateway URL. The default is `http://10.10.9.9/`.
-- Optional full ePortal login URL fallback. Most users should press Enter to skip this.
-
-The normal setup flow does not require copying the long ePortal login URL from a browser. SHU NetAuth fetches current ePortal login parameters only when authentication is actually needed.
-
-## How It Runs
-
-After installation, SHU NetAuth creates this Windows Scheduled Task:
+安装完成后会创建计划任务：
 
 ```text
 \SHU NetAuth\SHUCampusNetworkAutoAuth
 ```
 
-The task runs as `SYSTEM` at Windows startup and then checks every 5 minutes. If internet access is already available, it exits without reading the password or sending a login request. If internet access is unavailable, it probes the trusted campus portal gateway and submits an ePortal authentication request.
+该任务会在 Windows 开机时以 `SYSTEM` 身份运行，并每 5 分钟补充检查一次。
 
-## Manual Commands
+## 当前限制
 
-The setup wizard is recommended. These commands are available for manual operation:
+目前无法在所有环境中稳定通过简单访问 `http://10.10.9.9/` 自动获得完整 ePortal 登录长地址。当前版本要求用户人工复制一次完整长地址，并把其中的 query string 保存为 fallback。
+
+这个长地址通常包含设备 IP、接入控制器、端口、VLAN、MAC 等参数。它通常只适合同一台设备、同一个网络接口、同一种接入环境短期复用。换设备、换网口、换路由器、切换有线/无线或学校后端参数变化后，可能需要重新运行 `setup.cmd` 并粘贴新的长地址。
+
+代码中已预留 `Get-AutoDetectedPortalUrl` 接口，后续自动长地址获取模块会接入这里。
+
+## 手动命令
+
+推荐使用 `setup.cmd`。如需手动操作：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\configure.ps1
@@ -98,49 +88,36 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install-startup-task.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\test-login.ps1
 ```
 
-`install-startup-task.ps1` must be run from an administrator PowerShell.
+`install-startup-task.ps1` 需要管理员 PowerShell。
 
-## Logs
-
-Runtime logs are written locally:
-
-```text
-logs\shu-autoauth.log
-```
-
-To view recent logs:
+查看日志：
 
 ```powershell
 Get-Content .\logs\shu-autoauth.log -Tail 50
 ```
 
-## Uninstall
+如果当前已经联网，测试脚本会直接退出并记录：
 
-Run from an administrator PowerShell:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall-startup-task.ps1
+```text
+Internet is already available. No login needed.
 ```
 
-To remove local credentials after uninstalling, delete:
+这是正常行为。
+
+## 安全
+
+校园网账号写入：
 
 ```text
 config\portal.json
+```
+
+密码不会明文写入配置文件，而是保存为：
+
+```text
 config\portal.password.bin
 ```
 
-## Security
+该文件使用 Windows DPAPI `LocalMachine` 作用域加密，使计划任务能在用户未登录时由 `SYSTEM` 解密并执行认证。
 
-Read [SECURITY.md](SECURITY.md) before using SHU NetAuth on shared or untrusted devices.
-
-In short:
-
-- SHU NetAuth runs locally and does not use a project-owned remote server.
-- The campus password is stored in `config\portal.password.bin`.
-- The password file is protected by Windows DPAPI `LocalMachine`.
-- The ePortal protocol uses HTTP, so SHU NetAuth restricts authentication to the configured trusted portal host and validates the ePortal public key before submitting credentials.
-- A local administrator, `SYSTEM`-level process, or malware with sufficient local privileges may still access or indirectly use stored credentials.
-
-## Versioning
-
-This project uses Git tags and GitHub Releases for versioning. The current stable release is `v1.0.0`.
+当前版本的安全策略组仍在开发中，代码中已预留 `Invoke-SecurityPolicyCheck` 接口，但不启用 host pinning、public key pinning 或 credential endpoint restriction 等强校验。详细说明见 [SECURITY.md](SECURITY.md) 和 [TECHNICAL_NOTES.md](TECHNICAL_NOTES.md)。

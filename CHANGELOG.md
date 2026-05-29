@@ -3,23 +3,22 @@
 ## v1.0.0 - 2026-05-30
 
 - Formalized the project as SHU NetAuth.
-- Moved the current release structure to the repository root.
-- Switched public release package naming to `SHU-NetAuth-v1.0.0.zip`.
-- Removed the version-directory workflow from `main`; historical versions remain available through Git tags.
-- Removed the old roadmap document and deferred UI plans.
-- Added trusted portal host validation for ePortal URLs.
-- Added trusted ePortal public key validation before credential submission.
-- Added refusal behavior for unknown portal hosts, unknown `/eportal/` endpoints, public-key mismatch, and disabled password encryption.
-- Rewrote `README.md` for normal user installation through GitHub Releases and `setup.cmd`.
-- Rewrote `SECURITY.md` with credential storage, local data flow, network hijacking risk, remaining risks, and user recommendations.
-- Consolidated release history into this root changelog.
+- Published the root project as the release structure.
+- Added `setup.cmd` one-click setup entry point.
+- Added `setup.ps1` setup wizard with automatic administrator elevation.
+- Added system, network, portal gateway, scheduled task, test, and log status reporting.
+- Required a manually copied full ePortal login URL fallback during setup.
+- Kept the compatibility authentication flow based on the working v0.1.x line.
+- Reserved `Get-AutoDetectedPortalUrl` for future automatic long URL detection.
+- Reserved `Invoke-SecurityPolicyCheck` for future security policy enforcement.
+- Added technical notes describing the current SHU ePortal behavior and limitations.
 
 ## v0.1.3 - 2026-05-30
 
 - Added `setup.cmd` one-click setup entry point.
 - Added `setup.ps1` setup wizard with automatic administrator elevation.
-- Added system, network, portal gateway, scheduled task, test, and log status reporting.
-- Started publishing a user-friendly Release ZIP package.
+- Added pre-install system, network, portal gateway, and scheduled task status reporting.
+- Added continuous configure, install, test, and final status flow.
 
 ## v0.1.2 - 2026-05-30
 

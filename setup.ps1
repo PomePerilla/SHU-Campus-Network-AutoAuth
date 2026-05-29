@@ -1,4 +1,4 @@
-param([switch]$Elevated)
+﻿param([switch]$Elevated)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -172,10 +172,10 @@ if (-not (Test-IsAdministrator)) {
 
 try {
     Set-Location -LiteralPath $ProjectRoot
-    $host.UI.RawUI.WindowTitle = "SHU Campus Network AutoAuth Setup"
+    $host.UI.RawUI.WindowTitle = "SHU NetAuth Setup"
 
     Write-Host "SHU NetAuth v1.0.0 Setup" -ForegroundColor Green
-    Write-Host "This wizard will configure credentials, install the startup task, run a test, and report status."
+    Write-Host "This wizard will configure credentials, save the ePortal fallback URL, install the startup task, run a test, and report status."
 
     Show-SystemStatus
 

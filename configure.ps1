@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Username,
     [string]$Service = "shu",
     [string]$PortalGatewayUrl = "http://10.10.9.9/",
@@ -15,7 +15,6 @@ $PasswordPath = Join-Path $ConfigDir "portal.password.bin"
 
 $DefaultPublicKeyExponent = "10001"
 $DefaultPublicKeyModulus = "94dd2a8675fb779e6b9f7103698634cd400f27a154afa67af6166a43fc26417222a79506d34cacc7641946abda1785b7acf9910ad6a0978c91ec84d40b71d2891379af19ffb333e7517e390bd26ac312fe940c340466b4a5d4af1d65c3b5944078f96a1a51a5a53e4bc302818b7c9f63c4a1b07bd7d874cef1c3d4b2f5eb7871"
-$DefaultTrustedPortalHost = "10.10.9.9"
 
 function Read-WithDefault {
     param(
@@ -40,6 +39,29 @@ function Read-OptionalString {
     }
 
     return $value.Trim()
+}
+
+function Read-RequiredFallbackUrl {
+    param([string]$Prompt)
+
+    while ($true) {
+        $value = Read-Host $Prompt
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            Write-Host "The full ePortal login URL is required for this network. Paste the browser URL that starts with http://10.10.9.9/eportal/index.jsp?." -ForegroundColor Yellow
+            continue
+        }
+
+        try {
+            $uri = [uri]$value.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($uri.Query)) {
+                return $value.Trim()
+            }
+        }
+        catch {
+        }
+
+        Write-Host "The URL must include the long query string after '?'. Please paste the full ePortal login URL." -ForegroundColor Yellow
+    }
 }
 
 function Read-RequiredString {
@@ -125,26 +147,6 @@ function Get-PortalBaseUrl {
     return "$($uri.Scheme)://$($uri.Authority)/eportal/"
 }
 
-function Confirm-NonDefaultGateway {
-    param(
-        [string]$GatewayUrl,
-        [string]$TrustedPortalHost
-    )
-
-    $hostName = ([uri]$GatewayUrl).Host
-    if ($hostName -eq $TrustedPortalHost) {
-        return
-    }
-
-    Write-Host ""
-    Write-Host "Warning: the portal gateway host is not the default trusted SHU host ($TrustedPortalHost)." -ForegroundColor Yellow
-    Write-Host "Only continue if you are certain this is an official Shanghai University ePortal gateway." -ForegroundColor Yellow
-    $answer = Read-Host "Type YES to trust '$hostName' for this local configuration"
-    if ($answer -ne "YES") {
-        throw "Configuration cancelled because the portal gateway host was not confirmed."
-    }
-}
-
 function Get-FallbackQueryString {
     param([string]$PortalUrl)
 
@@ -166,8 +168,8 @@ if (-not (Test-Path $ConfigDir)) {
 
 Write-Host "SHU NetAuth v1.0.0"
 Write-Host ""
-Write-Host "This version does not require a current ePortal login URL during configuration."
-Write-Host "The startup task will fetch the current ePortal query string when login is actually needed."
+Write-Host "This compatibility setup requires one full ePortal login URL fallback."
+Write-Host "Open the ePortal login page in a browser and paste the full URL that contains '?'."
 Write-Host ""
 
 if ([string]::IsNullOrWhiteSpace($Username)) {
@@ -179,33 +181,34 @@ $Service = Read-WithDefault -Prompt "Service name" -Default $Service
 $PortalGatewayUrl = Read-WithDefault -Prompt "Portal gateway URL" -Default $PortalGatewayUrl
 
 if ([string]::IsNullOrWhiteSpace($FallbackPortalUrl)) {
-    $FallbackPortalUrl = Read-OptionalString -Prompt "Optional full ePortal login URL fallback (press Enter to skip)"
+    $FallbackPortalUrl = Read-RequiredFallbackUrl -Prompt "Full ePortal login URL fallback"
 }
 
 $normalizedGatewayUrl = Normalize-PortalGatewayUrl -Url $PortalGatewayUrl
-Confirm-NonDefaultGateway -GatewayUrl $normalizedGatewayUrl -TrustedPortalHost $DefaultTrustedPortalHost
 $portalBaseUrl = Get-PortalBaseUrl -GatewayUrl $normalizedGatewayUrl
 $fallbackQueryString = Get-FallbackQueryString -PortalUrl $FallbackPortalUrl
-$trustedPortalHost = ([uri]$normalizedGatewayUrl).Host
 
 $config = [ordered]@{
     ProductName = "SHU NetAuth"
     Version = "1.0.0"
     PortalType = "SHU-EPortal"
     PortalGatewayUrl = $normalizedGatewayUrl
-    TrustedPortalHost = $trustedPortalHost
-    EnforceTrustedPortal = $true
     LoginUrl = $portalBaseUrl + "InterFace.do?method=login"
     PageInfoUrl = $portalBaseUrl + "InterFace.do?method=pageInfo"
     Method = "POST"
     ContentType = "application/x-www-form-urlencoded; charset=UTF-8"
     Username = $Username.Trim()
     Service = $Service.Trim()
+    PortalUrlDetector = [ordered]@{
+        Mode = "reserved"
+    }
+    SecurityPolicy = [ordered]@{
+        Mode = "reserved"
+    }
     FallbackQueryString = $fallbackQueryString
     PasswordEncrypt = "true"
-    RequirePasswordEncrypt = $true
-    TrustedPublicKeyExponent = $DefaultPublicKeyExponent
-    TrustedPublicKeyModulus = $DefaultPublicKeyModulus
+    PublicKeyExponent = $DefaultPublicKeyExponent
+    PublicKeyModulus = $DefaultPublicKeyModulus
     OnlineTestUrl = "http://www.msftconnecttest.com/connecttest.txt"
     OnlineTestExpectedStatus = 200
     OnlineTestExpectedContent = "Microsoft Connect Test"
