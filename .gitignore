@@ -1,0 +1,25 @@
+# Local credentials and runtime state
+/config/
+/logs/
+
+# Legacy local prototype files outside the versioned release package
+/configure.ps1
+/install-startup-task.ps1
+/uninstall-startup-task.ps1
+/scripts/
+
+# Versioned release runtime state
+v*/config/portal.json
+v*/config/portal.password.bin
+v*/logs/
+
+# PowerShell/runtime noise
+*.log
+*.tmp
+*.bak
+
+# Editor/OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
