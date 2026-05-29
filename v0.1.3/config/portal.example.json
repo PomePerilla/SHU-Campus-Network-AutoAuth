@@ -1,0 +1,21 @@
+{
+  "ProductName": "SHU Campus Network AutoAuth",
+  "Version": "0.1.3",
+  "PortalType": "SHU-EPortal",
+  "PortalGatewayUrl": "http://10.10.9.9/",
+  "LoginUrl": "http://10.10.9.9/eportal/InterFace.do?method=login",
+  "PageInfoUrl": "http://10.10.9.9/eportal/InterFace.do?method=pageInfo",
+  "Method": "POST",
+  "ContentType": "application/x-www-form-urlencoded; charset=UTF-8",
+  "Username": "YOUR_STUDENT_ID",
+  "Service": "shu",
+  "FallbackQueryString": "",
+  "PasswordEncrypt": "true",
+  "PublicKeyExponent": "10001",
+  "PublicKeyModulus": "FETCHED_BY_CONFIGURE_SCRIPT",
+  "OnlineTestUrl": "http://www.msftconnecttest.com/connecttest.txt",
+  "OnlineTestExpectedStatus": 200,
+  "OnlineTestExpectedContent": "Microsoft Connect Test",
+  "TimeoutSeconds": 15,
+  "SuccessCheckDelaySeconds": 5
+}
