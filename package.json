@@ -1,0 +1,9 @@
+{
+  "name": "shu-netauth",
+  "version": "1.1.1",
+  "private": true,
+  "description": "SHU NetAuth development helper dependencies.",
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

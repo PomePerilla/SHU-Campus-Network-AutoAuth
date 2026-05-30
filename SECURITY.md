@@ -1,6 +1,6 @@
 # Security
 
-This document describes how SHU NetAuth v1.0.1 handles credentials and what security limits remain.
+This document describes how SHU NetAuth v1.1.1 handles credentials and what security limits remain.
 
 ## Local Credential Storage
 
@@ -60,7 +60,7 @@ This is still not a defense against a compromised local machine, local administr
 
 The Shanghai University ePortal flow observed during development uses HTTP and may involve redirects or pages that are not consistently reproduced by PowerShell's simple HTTP probing.
 
-Earlier strict security checks blocked real authentication in this environment. In v1.0.1, SHU NetAuth prioritizes compatibility:
+Earlier strict security checks blocked real authentication in this environment. In v1.1.1, SHU NetAuth prioritizes compatibility:
 
 - `Invoke-SecurityPolicyCheck` is reserved as a future security-policy interface.
 - Host pinning is not enforced.
@@ -69,6 +69,22 @@ Earlier strict security checks blocked real authentication in this environment. 
 - Password-encryption refusal rules are not enforced.
 
 These checks are planned to return only after the real SHU ePortal behavior is understood and tested.
+
+## Portal URL Detector Boundary
+
+v1.1.1 adds an independent Playwright-based portal URL detector. This detector is used for testing automatic long URL acquisition only and is not connected to the startup authentication flow yet.
+
+The detector:
+
+- Opens the configured portal gateway, normally `http://10.10.9.9/`.
+- Reads the final browser URL after a short wait.
+- Can print only the detected long URL when `-OnlyUrl` is used.
+- Does not decrypt or submit the campus network password.
+- Does not send credentials to the portal.
+- Does not intentionally visit `msftconnecttest.com`.
+- Routes browser page requests through a small allowlist for observed portal hosts.
+
+The complete detected long URL may contain device and access-environment parameters. Treat it as sensitive operational data and do not publish it.
 
 ## Long URL Risk
 

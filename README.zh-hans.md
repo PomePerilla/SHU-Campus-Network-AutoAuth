@@ -4,7 +4,7 @@
 
 SHU NetAuth 是一个面向上海大学校园网 ePortal 环境的 Windows 开机自动认证工具。
 
-`v1.0.1` 版本重点优化安装体验：用户只需要输入校园网用户名、密码，以及一条从浏览器复制的完整 ePortal 登录长地址。详细诊断信息会写入 `logs\shu-netauth.log`，不会堆在安装窗口里。
+`v1.1.1` 版本新增了基于 Playwright 的实验性 ePortal 长 URL 检测模块，同时保持开机自动认证主流程稳定。用户仍然可以通过一条从浏览器复制的完整 ePortal 登录长地址完成安装，详细诊断信息会写入 `logs\shu-netauth.log`，不会堆在安装窗口里。
 
 ## 适用环境
 
@@ -31,12 +31,12 @@ http://10.10.9.9
 
 从 GitHub Releases 下载：
 
-[SHU-NetAuth-v1.0.1.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.0.1/SHU-NetAuth-v1.0.1.zip)
+[SHU-NetAuth-v1.1.1.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.1.1/SHU-NetAuth-v1.1.1.zip)
 
 解压后打开：
 
 ```text
-SHU-NetAuth-v1.0.1
+SHU-NetAuth-v1.1.1
 ```
 
 ## 安装
@@ -107,6 +107,28 @@ SHU NetAuth 目前还不能在所有校园网状态下稳定地从 `http://10.10
 
 如果更换网口、路由器、有线/无线模式或网络环境后认证失败，请重新运行 `setup.cmd`，并粘贴新的 ePortal URL。
 
+## 实验性 URL 检测模块
+
+v1.1.1 包含一个独立的 Playwright 检测模块，用于测试自动获取 ePortal 长 URL：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Detect-PortalUrl.Playwright.ps1
+```
+
+只返回检测到的长 URL：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Detect-PortalUrl.Playwright.ps1 -OnlyUrl
+```
+
+安装检测模块依赖：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-PortalDetectorDependencies.ps1
+```
+
+该检测模块目前仍是独立模块，尚未接入开机自动认证主流程。
+
 ## 预留接口
 
 主认证脚本预留了：
@@ -123,7 +145,7 @@ Get-AutoDetectedPortalUrl
 Invoke-SecurityPolicyCheck
 ```
 
-用于后续安全策略组。在 `v1.0.1` 中，该接口不会强制执行 host pinning、public key pinning 或凭据提交端点限制。
+用于后续安全策略组。在 `v1.1.1` 中，该接口不会强制执行 host pinning、public key pinning 或凭据提交端点限制。
 
 ## 手动命令
 

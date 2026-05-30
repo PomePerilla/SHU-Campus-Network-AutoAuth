@@ -47,7 +47,7 @@ function Invoke-SecurityPolicyCheck {
         [string]$TargetUrl = ""
     )
 
-    # Reserved extension point. v1.0.1 does not enforce network security rules.
+    # Reserved extension point. v1.1.1 does not enforce network security rules.
     return $true
 }
 

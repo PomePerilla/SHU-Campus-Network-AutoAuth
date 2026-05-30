@@ -1,6 +1,6 @@
 ﻿{
   "ProductName": "SHU NetAuth",
-  "Version": "1.0.1",
+  "Version": "1.1.1",
   "PortalType": "SHU-EPortal",
   "PortalGatewayUrl": "http://10.10.9.9/",
   "LoginUrl": "http://10.10.9.9/eportal/InterFace.do?method=login",
@@ -10,7 +10,12 @@
   "Username": "YOUR_STUDENT_ID",
   "Service": "shu",
   "PortalUrlDetector": {
-    "Mode": "reserved"
+    "Mode": "playwright-browser",
+    "TimeoutSeconds": 8,
+    "MaxRedirects": 8,
+    "RetryCount": 6,
+    "RetryDelaySeconds": 5,
+    "PlaywrightWaitSeconds": 5
   },
   "SecurityPolicy": {
     "Mode": "reserved"

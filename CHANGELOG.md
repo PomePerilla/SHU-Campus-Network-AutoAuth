@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.1.1 - 2026-05-30
+
+- Added a standalone browser-like ePortal long URL detector prototype at `scripts\Invoke-PortalUrlDetector.ps1`.
+- Added a minimal Playwright-based detector at `scripts\Detect-PortalUrl.Playwright.ps1` and `scripts\detect-portal-url.mjs` that opens `http://10.10.9.9/`, waits, and reads the final browser URL.
+- Made the Playwright detector default to background execution, close browser resources with a `finally` path, and report the browser launch mode.
+- Added `-OnlyUrl` output mode for the Playwright detector so integrations can receive only the detected long URL.
+- Hid page title from normal detector output and kept it behind `-VerboseInfo` to avoid console encoding noise.
+- Added browser launch flags and request filtering to reduce background network activity and block unrelated captive-check hosts.
+- Added `scripts\Install-PortalDetectorDependencies.ps1` for detector dependency setup and optional Chromium installation.
+- Added detector configuration defaults to `config\portal.example.json`.
+- Kept the detector separate from the main authentication flow until it is tested on the real campus network.
+
 ## v1.0.1 - 2026-05-30
 
 - Simplified setup output to show only project status, network status, and final success or attention state.

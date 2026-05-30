@@ -169,7 +169,7 @@ try {
     $host.UI.RawUI.WindowTitle = "SHU NetAuth Setup"
 
     Write-AppLog -Message "Setup wizard started."
-    Write-Host "SHU NetAuth v1.0.1 Setup" -ForegroundColor Green
+    Write-Host "SHU NetAuth v1.1.1 Setup" -ForegroundColor Green
     Write-Host "This wizard will configure SHU NetAuth and keep detailed logs in logs\shu-netauth.log."
 
     Show-UserStatus

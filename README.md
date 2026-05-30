@@ -1,10 +1,10 @@
-# SHU NetAuth
+﻿# SHU NetAuth
 
 Languages: [English](README.md) | [简体中文](README.zh-hans.md) | [繁體中文](README.zh-hant.md)
 
 SHU NetAuth is a Windows startup authentication tool for the Shanghai University campus network ePortal environment.
 
-Version `v1.0.1` focuses on a clean setup experience: users only need to enter their campus network username, password, and one full ePortal login URL copied from the browser. Detailed diagnostics are written to `logs\shu-netauth.log` instead of being shown in the setup window.
+Version `v1.1.1` adds an experimental Playwright-based ePortal long URL detector while keeping the startup authentication flow stable. Users can still complete setup with one full ePortal login URL copied from the browser, and detailed diagnostics are written to `logs\shu-netauth.log` instead of being shown in the setup window.
 
 ## Supported Environment
 
@@ -31,12 +31,12 @@ Unsupported cases:
 
 Download from GitHub Releases:
 
-[SHU-NetAuth-v1.0.1.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.0.1/SHU-NetAuth-v1.0.1.zip)
+[SHU-NetAuth-v1.1.1.zip](https://github.com/PomePerilla/SHU-Campus-Network-AutoAuth/releases/download/v1.1.1/SHU-NetAuth-v1.1.1.zip)
 
 Extract the package and open:
 
 ```text
-SHU-NetAuth-v1.0.1
+SHU-NetAuth-v1.1.1
 ```
 
 ## Setup
@@ -107,6 +107,28 @@ The copied long URL may be tied to the current device, network interface, access
 
 If authentication stops working after changing ports, routers, wired/wireless mode, or network environment, run `setup.cmd` again and paste a fresh ePortal URL.
 
+## Experimental URL Detector
+
+v1.1.1 includes an independent Playwright-based detector for testing automatic ePortal long URL acquisition:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Detect-PortalUrl.Playwright.ps1
+```
+
+Return only the detected long URL:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Detect-PortalUrl.Playwright.ps1 -OnlyUrl
+```
+
+Install detector dependencies:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-PortalDetectorDependencies.ps1
+```
+
+The detector is currently a standalone module. It is not connected to the startup authentication flow yet.
+
 ## Reserved Interfaces
 
 The main authentication script reserves:
@@ -123,7 +145,7 @@ It also reserves:
 Invoke-SecurityPolicyCheck
 ```
 
-for future security policy enforcement. In `v1.0.1`, this interface does not enforce host pinning, public-key pinning, or credential endpoint restrictions.
+for future security policy enforcement. In `v1.1.1`, this interface does not enforce host pinning, public-key pinning, or credential endpoint restrictions.
 
 ## Manual Commands
 

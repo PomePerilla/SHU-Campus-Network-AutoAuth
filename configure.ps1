@@ -183,7 +183,7 @@ if (-not (Test-Path $ConfigDir)) {
     New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
 }
 
-Write-Host "SHU NetAuth v1.0.1"
+Write-Host "SHU NetAuth v1.1.1"
 Write-Host ""
 Write-Host "Before continuing:"
 Write-Host "1. Open http://10.10.9.9 in your browser."
@@ -211,7 +211,7 @@ Write-AppLog -Message "Fallback query string captured. Length=$($fallbackQuerySt
 
 $config = [ordered]@{
     ProductName = "SHU NetAuth"
-    Version = "1.0.1"
+    Version = "1.1.1"
     PortalType = "SHU-EPortal"
     PortalGatewayUrl = $normalizedGatewayUrl
     LoginUrl = $portalBaseUrl + "InterFace.do?method=login"
